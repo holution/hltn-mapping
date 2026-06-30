@@ -26,6 +26,13 @@ static void *filter_create(obs_data_t *settings, obs_source_t *source)
 	f->hover_idx = -1;
 	f->editor = nullptr;
 	f->mesh_dirty = true;
+
+	obs_source_t *target = obs_filter_get_target(source);
+	if (target) {
+		f->cx = obs_source_get_base_width(target);
+		f->cy = obs_source_get_base_height(target);
+	}
+
 	return f;
 }
 
@@ -237,6 +244,9 @@ static void filter_video_tick(void *data, float seconds)
 	if (!target)
 		return;
 
+	if (f->render)
+		gs_texrender_reset(f->render);
+
 	uint32_t cx = obs_source_get_base_width(target);
 	uint32_t cy = obs_source_get_base_height(target);
 
@@ -314,11 +324,18 @@ static void filter_video_render(void *data, gs_effect_t *effect)
 
 	enum gs_color_space space = gs_get_color_space();
 	if (gs_texrender_begin_with_color_space(f->render, f->cx, f->cy, space)) {
+		gs_blend_state_push();
+		gs_blend_function_separate(
+			GS_BLEND_SRCALPHA, GS_BLEND_INVSRCALPHA,
+			GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
+
 		struct vec4 clear;
 		vec4_zero(&clear);
 		gs_clear(GS_CLEAR_COLOR, &clear, 0.0f, 0);
 		gs_ortho(0.0f, (float)f->cx, 0.0f, (float)f->cy, -100.0f, 100.0f);
 		obs_source_video_render(target);
+
+		gs_blend_state_pop();
 		gs_texrender_end(f->render);
 	}
 
@@ -342,7 +359,7 @@ static void filter_video_render(void *data, gs_effect_t *effect)
 			gs_draw(GS_TRIS, 0, f->num_verts);
 		}
 	}
-	
+
 	if (f->show_overlay)
 		draw_overlay(f);
 

@@ -1,5 +1,5 @@
 #define MyAppName "HLTN Mapping"
-#define MyAppVersion "0.0.1"
+#define MyAppVersion "0.0.2"
 #define MyAppPublisher "holution"
 #define MyAppURL "https://github.com/holution/hltn-mapping"
 
